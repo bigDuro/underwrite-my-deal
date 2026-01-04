@@ -71,6 +71,11 @@ export function buildPerformanceTimeline(inputs) {
     const propertyValue = baseValue * Math.pow(1 + annualAppreciation, yearFrac);
     const equity = propertyValue - balance;
 
+    const monthlyNOI = rent - monthlyOperatingExpenses;
+    const dscr = payment > 0 ? monthlyNOI / payment : 0;
+    const expenseRatio = rent > 0 ? monthlyOperatingExpenses / rent : 0;
+
+
     series.push({
       month: m,
       year: Number((m / 12).toFixed(2)),
@@ -82,6 +87,9 @@ export function buildPerformanceTimeline(inputs) {
       loanBalance: balance,
       propertyValue,
       equity,
+      dscr, 
+      expenseRatio, 
+      monthlyNOI
     });
   }
 

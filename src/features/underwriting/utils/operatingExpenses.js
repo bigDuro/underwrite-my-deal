@@ -1,3 +1,4 @@
+import { safeNum } from "./number";
 export function calcMonthlyOperatingExpenses(inputs, overrides = {}) {
   const rent = safeNum(overrides.monthlyRent ?? inputs.monthlyRent);
 
@@ -21,8 +22,12 @@ export function calcMonthlyOperatingExpenses(inputs, overrides = {}) {
     capex;
 
   return {
-    monthlyOperatingExpenses,
-    breakdown: {
+  monthlyOperatingExpenses,
+  monthlyTaxes,
+  monthlyInsurance,
+  reserves: vacancy + maintenance + capex,
+  management,
+  breakdown: {
       monthlyFixed,
       monthlyTaxes,
       monthlyInsurance,
@@ -30,7 +35,7 @@ export function calcMonthlyOperatingExpenses(inputs, overrides = {}) {
       maintenance,
       management,
       capex,
-    },
+    }
   };
 }
 
@@ -38,9 +43,4 @@ function pct(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n) / 100;
-}
-
-function safeNum(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
 }

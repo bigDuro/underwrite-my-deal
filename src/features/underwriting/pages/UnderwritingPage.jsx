@@ -13,10 +13,16 @@ import {
     encodeDealToQueryParam,
     readInputsFromSearchParams,
 } from "../utils/urlState";
+import { buildDealVerdict } from "../utils/verdict";
+import SensitivityControls from "../components/SensitivityControls";
+import { applySensitivity } from "../utils/sensitivity";
+
 
 
 export default function UnderwritingPage() {
     const [inputs, setInputs] = useState(DEFAULT_UNDERWRITING_INPUTS);
+    const [sensitivity, setSensitivity] = useState("base");
+
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -25,28 +31,34 @@ export default function UnderwritingPage() {
     const hydratedRef = useRef(false);
     const lastDealRef = useRef(null);
 
+    const effectiveInputs = useMemo(
+  () => applySensitivity(inputs, sensitivity),
+  [inputs, sensitivity]
+);
+
+
     // 1) On first load (or when URL changes), hydrate inputs from URL
     useEffect(() => {
-  const sp = new URLSearchParams(location.search);
-  const dealParam = sp.get("deal") || "";
+        const sp = new URLSearchParams(location.search);
+        const dealParam = sp.get("deal") || "";
 
-  // if we already hydrated this exact deal string, skip
-  if (dealParam && dealParam === lastDealRef.current) return;
+        // if we already hydrated this exact deal string, skip
+        if (dealParam && dealParam === lastDealRef.current) return;
 
-  const fromDeal = decodeDealFromQueryParam(dealParam);
-  const fromReadable = readInputsFromSearchParams(sp);
-  console.log(fromDeal)
+        const fromDeal = decodeDealFromQueryParam(dealParam);
+        const fromReadable = readInputsFromSearchParams(sp);
+        console.log(fromDeal)
 
-  const merged = {
-    ...DEFAULT_UNDERWRITING_INPUTS,
-    ...(fromDeal || {}),
-    ...(Object.keys(fromReadable).length ? fromReadable : {}),
-  };
+        const merged = {
+            ...DEFAULT_UNDERWRITING_INPUTS,
+            ...(fromDeal || {}),
+            ...(Object.keys(fromReadable).length ? fromReadable : {}),
+        };
 
-  setInputs(merged);
-  hydratedRef.current = true;
-  lastDealRef.current = dealParam;
-}, [location.search]);
+        setInputs(merged);
+        hydratedRef.current = true;
+        lastDealRef.current = dealParam;
+    }, [location.search]);
 
     // 2) When inputs change, write them back to the URL (debounced)
     useEffect(() => {
@@ -77,8 +89,14 @@ export default function UnderwritingPage() {
         return () => clearTimeout(id);
     }, [inputs, location.pathname, location.search, navigate]);
 
-    const timeline = useMemo(() => buildPerformanceTimeline(inputs), [inputs]);
-    const results = timeline.snapshot;
+    const timeline = useMemo(() => buildPerformanceTimeline(effectiveInputs), [effectiveInputs]);
+const results = timeline.snapshot;
+
+    const verdict = useMemo(
+        () => buildDealVerdict(inputs, results, timeline),
+        [inputs, results, timeline]
+    );
+
 
     return (
         <Box sx={{ width: "100%" }}>
@@ -133,8 +151,9 @@ export default function UnderwritingPage() {
                         <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                             Summary
                         </Typography>
-
-                        <UnderwritingSummary results={results} />
+                        <Paper sx={{ width: "100%", maxWidth: 1440, p: 2 }}>  <SensitivityControls value={sensitivity} onChange={setSensitivity} />   </Paper>
+                       
+                        <UnderwritingSummary results={results} verdict={verdict} />
                         <PerformanceChart series={timeline.series} />
                     </Paper>
                 </Box>
